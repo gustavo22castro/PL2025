@@ -1,4 +1,4 @@
-#Criação de um somador de numeros em string # Somador On/Off
+# Criação de um somador de numeros em string # Somador On/Off
 ## Gustavo Castro, A100482
 
 ## Descrição
