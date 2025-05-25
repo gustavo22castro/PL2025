@@ -1,0 +1,34 @@
+{
+  "stock": [
+    {
+      "cod": "A01",
+      "nome": "\u00c1gua 0.5L",
+      "quant": 8,
+      "preco": 0.7
+    },
+    {
+      "cod": "B02",
+      "nome": "Coca-Cola 33cl",
+      "quant": 8,
+      "preco": 1.0
+    },
+    {
+      "cod": "C03",
+      "nome": "Sumo de Laranja",
+      "quant": 5,
+      "preco": 1.2
+    },
+    {
+      "cod": "D04",
+      "nome": "Snack Bolacha",
+      "quant": 6,
+      "preco": 0.85
+    },
+    {
+      "cod": "E05",
+      "nome": "Pastilha el\u00e1stica",
+      "quant": 20,
+      "preco": 0.3
+    }
+  ]
+}

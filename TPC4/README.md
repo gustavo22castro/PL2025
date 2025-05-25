@@ -9,6 +9,27 @@ O trabalho consiste em construir um analisador léxico simples em Python que ide
 
 ---
 
+## Tipos de Tokens
+- RESERVADA — Palavras-chave como select, where, limit
+
+- VAR — Variáveis iniciadas por ?
+
+- NAMESPACE — URIs com prefixos dbo: ou foaf:
+
+- TEXTO — Strings entre aspas, com possível tag de idioma (ex: @en)
+
+- NUM — Números inteiros
+
+- DELIM — Símbolos {, }, .
+
+- INVALIDO — Qualquer símbolo não previsto (gera erro)
+
+## Funcionamento
+O programa contém um conjunto de expressões regulares para cada tipo de token. Utiliza a função ``re.finditer()`` para percorrer a string de entrada e identificar os elementos um a um. Os espaços são ignorados e símbolos inválidos provocam erro.
+
+O resultado é uma lista de pares (valor, tipo), representando os tokens da consulta.
+
+
 ## Exemplo de Entrada
 
 ```sparql
@@ -51,23 +72,3 @@ DELIMITADOR  → }
 RESERVADA    → LIMIT
 NUMERO       → 1000
 ```
-## Tipos de Tokens
-- RESERVADA — Palavras-chave como select, where, limit
-
-- VAR — Variáveis iniciadas por ?
-
-- NAMESPACE — URIs com prefixos dbo: ou foaf:
-
-- TEXTO — Strings entre aspas, com possível tag de idioma (ex: @en)
-
-- NUM — Números inteiros
-
-- DELIM — Símbolos {, }, .
-
-- INVALIDO — Qualquer símbolo não previsto (gera erro)
-
-## Funcionamento
-O programa contém um conjunto de expressões regulares para cada tipo de token. Utiliza a função ``re.finditer()`` para percorrer a string de entrada e identificar os elementos um a um. Os espaços são ignorados e símbolos inválidos provocam erro.
-
-O resultado é uma lista de pares (valor, tipo), representando os tokens da consulta.
-
