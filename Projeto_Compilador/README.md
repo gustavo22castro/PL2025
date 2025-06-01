@@ -1,4 +1,4 @@
-# Projeto de Compilador vSL
+# Projeto de Compilador Pascal Standard
 **Processamento de Linguagens - LEI**
 
 ## 1. Introdução
@@ -20,12 +20,19 @@ Este projeto consiste na construção de um compilador para **Pascal Standard**.
 ├── outputs/               # Código VM gerado (.txt)
 └── README.md              # Relatório
 ```
+Para executar o nosso compilador basta correr no terminal, estando na pasta **/src**:
+```
+cat [path ficheiro teste] | python3 pascal_sin.py
+```
 
 ## 3. O Compilador
 
 ### 3.1 Lexer (Tokens e Expressões Regulares)
 
-O analisador léxico foi implementado com PLY.lex no ficheiro pascal_lex.py. Define tokens, literais e as respetivas expressões regulares para reconhecimento.
+O analisador léxico foi implementado com PLY.lex no ficheiro [pascal_lex.py](./src/pascal_lex.py). Define tokens, literais e as respetivas expressões regulares para reconhecimento. Para testar o funcionamento do analisador léxico, foi criado o ficheiro [tokenizer.py](./src/tokenizer.py). Para o ver funcionar basta escrever no terminal:
+```
+cat [path ficheiro teste] | python3 tokenizer.py 
+```
 
 Literais:
 
@@ -102,7 +109,7 @@ Esta função permite que a análise continue mesmo quando há erros e que estes
 
 ### 3.2 Gramática (Parser)
 
-A gramática do compilador vSL foi implementada usando o módulo `yacc` da biblioteca PLY (Python Lex-Yacc). Esta gramática define as regras de construção sintática dos programas e segue uma estrutura típica das linguagens imperativas, inspirada no Pascal.
+A gramática do compilador Pascal foi implementada usando o módulo `yacc` da biblioteca PLY (Python Lex-Yacc). Esta gramática define as regras de construção sintática dos programas e segue uma estrutura típica das linguagens imperativas, inspirada no Pascal. Esta implementação encontra-se no ficheiro [pascal_sin.py](./src/pascal_sin.py)
 
 Cada regra da gramática é escrita como uma função `p_<nome>` em Python, e o corpo da produção está numa string com notação BNF. O resultado de cada regra é armazenado em `p[0]`, como um nó de uma árvore sintática abstrata (AST).
 
@@ -262,7 +269,118 @@ Após passar pelo pascal_sin.py temos a seguinte AST:
   '.'
 ]
 ```
-Este árvore sintática encontra-se pronta para gerar o código maquina.
+Este árvore sintática encontra-se pronta para gerar o código máquina.
+
+### 3.3 Gerador de código VM
+
+#### Decisões e abordagens
+
+Como a nossa abordagem foi traduzir os programas Pascal numa representação intermédia, criamos um novo ficheiro ([stack_generator.py](./src/stack_generator.py)) que percorre esta mesma, convertendo-a na linguagem VM pretendida.
+
+Tal como demonstrado no exemplo anterior, a AST gerada foi planeada de modo a ter *tags* que auxiliam na geração do código VM.
+Apresentam-se a seguir alguns exemplos da conversão da AST em código VM.
+
+#### Declaração de variáveis
+```python
+...['var', ['n', 'i', 'fat', ['integer']]],
+    'begin',...
+```
+```
+PUSHI 0 -> coloca-se 0 no topo da stack para inicializar o inteiro "n"
+STOREG 0 -> guarda-se o valor de "n" na posição 0 da stack
+PUSHI 0 -> coloca-se 0 no topo da stack para inicializar o inteiro "i"
+STOREG 1 -> guarda-se o valor de "n" na posição 0 da stack
+PUSHI 0 -> coloca-se 0 no topo da stack para inicializar o inteiro "fat"
+STOREG 2 -> guarda-se o valor de "fat" na posição 0 da stack
+START -> começa o programa quando aparece a tag 'begin', iniciando o apontador na posição a seguir às variáveis
+```
+
+#### Ciclos FOR
+```python
+...[
+      'FOR', 'i', ':=', 1, 'to', ['n'], 'DO',...
+        ]
+```
+```
+PUSHI 1 -> colocar o valor inicial do "i" na stack
+STOREG 1 -> guardar o valor no endereço de "i"
+L0: -> label de entrada no loop
+PUSHG 1 -> carregar o valor de "i" para a stack
+PUSHG 0 -> carregar o valor de "n" para a stack
+INFEQ -> verificar se i <= n
+JZ L1 -> se i > n saltar para a label L1
+... (código a executar dentro do for)
+PUSHG 1 -> carregar o valor de "i" para a stack
+PUSHI 1 -> colocar o valor 1 na stack para incrementar o "i"
+ADD -> somar 1 a "i"
+STOREG 1 -> guardar o novo valor de "i" no seu endereço
+JUMP L0 -> label de salto para o início do loop
+L1: -> label de salto de fim do ciclo
+... (código a executar depois do for)
+```
+
+#### Ciclos WHILE
+
+```python
+...['WHILE', 
+        '<=', ['i'], 5, 
+        'DO',...
+    ]
+```
+```
+L0: -> label de inicio do ciclo
+PUSHG 0 -> carrega o valor de "i" para a stack
+PUSHI 5 -> coloca o valor 5 na stack
+INFEQ -> verifica a condição do ciclo while (se i <= 5) caso i > 5 a condição coloca 0 na stack
+JZ L1 -> salta para L1 se a condição deu 0
+... -> caso i <= 5 corre o código dentro do while
+PUSHG 0 -> carrega o valor de "i" para a stack
+PUSHI 1 -> coloca o valor 1 na stack para incrementar o "i"
+ADD -> soma 1 a "i"
+STOREG 0 -> atualiza o valor de "i"
+JUMP L0 -> salta para o início do ciclo
+L1: -> label de fim de ciclo
+... -> continuação do programa
+```
+
+#### Expressões IF-THEN-ELSE
+
+```python
+['IF', ['>', ['numero'], 10], 
+    
+    ['THEN', ['writeln', ["'O número é maior que 10.'"]]],
+
+['ELSE', [['writeln', ["'O número não é maior que 10.'"]]]]
+
+],...
+```
+
+```
+PUSHG 0 -> coloca o valor de "numero" na stack
+PUSHI 10 -> coloca o valor 10 na stack
+SUP -> verifica a condição do IF (se numero > 10) caso numero > 10 a condição coloca 0 na stack
+JZ L0 -> salta para L0 se a condição deu 0, ou seja, salta para o ramo ELSE
+PUSHS "O número é maior que 10." -> se a condição deu 1 executa o ramo THEN
+WRITES -> imprime a string no stdout
+WRITELN -> imprime "\n" no stdout
+JUMP L1 -> salta para depois do ELSE
+L0: -> label onde começa o ELSE
+PUSHS "O número não é maior que 10." -> coloca a string na stack
+WRITES -> imprime a string no stdout
+WRITELN -> imprime "\n" no stdout
+L1: label depois do ELSE
+```
+
+## 4. Testes
+
+Para testar o funcionamento e correção do nosso compilador foram usados os testes presentes no enunciado.
+
+1. O [teste 1](./tests/test1.pas) gerou o ficheiro [HelloWorld.txt](./outputs/HelloWorld.txt)
+2. O [teste 2](./tests/test2.pas) gerou o ficheiro [Maior3.txt](./outputs/Maior3.txt)
+3. O [teste 3](./tests/test3.pas) gerou o ficheiro [Fatorial.txt](./outputs/Fatorial.txt)
+4. O [teste 4](./tests/test4.pas) gerou o ficheiro [NumeroPrimo.txt](./outputs/NumeroPrimo.txt)
+5. O [teste 5](./tests/test5.pas) gerou o ficheiro [SomaArray.txt](./outputs/SomaArray.txt)
+6. O [teste 6](./tests/test6.pas) gerou o ficheiro [BinarioParaInteiro.txt](./outputs/BinarioParaInteiro.txt)
 
 ## Conclusão
 
